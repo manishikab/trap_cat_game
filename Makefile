@@ -1,25 +1,26 @@
-# Compiler
+# Compiler and flags
 CXX = g++
+CXXFLAGS = -std=c++17 -I/opt/homebrew/include
+LDFLAGS = -L/opt/homebrew/lib -lsfml-graphics -lsfml-window -lsfml-system
 
-# Compiler flags
-CXXFLAGS = -std=c++11
+# Target executable
+TARGET = game
 
-# Files
-SRC = main.cpp game.cpp  # List all your source files here
-OBJ = $(SRC:.cpp=.o)  # Object files will be .o (compiled .cpp)
-EXEC = game_test       # Name of the output executable
+# Sources and objects
+SRC = main.cpp game.cpp
+OBJ = $(SRC:.cpp=.o)
 
-# Default target (make without arguments will use this target)
-all: $(EXEC)
+# Default rule (compile the game)
+all: $(TARGET)
 
-# Linking the object files to create the executable
-$(EXEC): $(OBJ)
-	$(CXX) $(OBJ) -o $(EXEC)
+# Link object files to create the final executable
+$(TARGET): $(OBJ)
+	$(CXX) $(CXXFLAGS) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
-# Compiling the source files to object files
+# Compile .cpp files to .o files
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Clean up the generated files
+# Clean up build files
 clean:
-	rm -f $(OBJ) $(EXEC)
+	rm -f $(TARGET) $(OBJ)

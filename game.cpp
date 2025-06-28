@@ -1,9 +1,17 @@
 #include <iostream>
 #include <vector>
 
+#include <cstdlib>
+#include <ctime>
+
+#include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+
+
 using namespace std;
 
 const int SIZE = 5;
+const int CELL_SIZE = 100;
 
 enum Cell {
     CAT,
@@ -21,48 +29,61 @@ class Game {
         vector<vector<Cell>> board;
         Position cat_spot;
         bool game_end = false;
+        sf::RenderWindow window;
+
     public:
-        Game(){ 
-            board = vector<vector<Cell>>(SIZE, std::vector<Cell>(SIZE, EMPTY));
-            cat_spot = {SIZE/2, SIZE/2};
-            board[cat_spot.row][cat_spot.col] = CAT;
-            // random gen
-            srand(time(nullptr));
-        }
+    Game() 
+    : window(sf::VideoMode(sf::Vector2u(SIZE * CELL_SIZE, SIZE * CELL_SIZE)), "Catch the Cat", 32) {
+    board = vector<vector<Cell>>(SIZE, vector<Cell>(SIZE, EMPTY));
+    cat_spot.row = SIZE / 2;
+    cat_spot.col = SIZE / 2;
+    board[cat_spot.row][cat_spot.col] = CAT;
+    srand(time(nullptr));
+}
+
 
         void print_board(){
-            cout << "\n=== BOARD ===\n";
+            window.clear(sf::Color::White);
+
             for (int i = 0; i < SIZE; ++i) {
                 for (int j = 0; j < SIZE; ++j) {
-                    if (i == cat_spot.row && j == cat_spot.col){
-                        cout << "c";
-                    } 
-                    else if (board[i][j] == BLOCK) {
-                        cout << "#";
+                    sf::RectangleShape cell(sf::Vector2f(CELL_SIZE, CELL_SIZE));
+                    cell.setPosition(sf::Vector2f(i * CELL_SIZE, i * CELL_SIZE));      
+
+                    if (board[i][j] == BLOCK){
+                        cell.setFillColor(sf::Color::Black);
+                    }
+                    else if (board[i][j] == CAT) {
+                        cell.setFillColor(sf::Color::Yellow);
                     }
                     else {
-                        cout << ".";
+                        cell.setFillColor(sf::Color::White);
                     }
-                }
-                cout << endl;
+
+                    window.draw(cell);
             }
         }
+        window.display();
+    }
 
         void player_move(){
             int row;
             int col;
 
-            cout << "Place a block-- enter row and column number separated by a space:";
-            cin >> row >> col;
-
-            if (row < 0 || col < 0 || row >= SIZE || col >= SIZE){
-                cout << "Invalid move.";
-                player_move();
-            }
-            else {
-                board[row][col] = BLOCK;
-            }
+            while (true) {
+                cout << "Place a block! Enter row and column number separated by a space: ";
+                cin >> row >> col;
+        
+                if (row < 0 || col < 0 || row >= SIZE || col >= SIZE) {
+                    cout << "Invalid move. Try again." << endl;
+                } else if (board[row][col] != EMPTY) {
+                    cout << "That cell is already occupied. Try again" << endl;
+                } else {
+                    board[row][col] = BLOCK;
+                    break;
+                }
         }
+    }
 
         void cat_move(){
             vector<Position>possible_moves;
@@ -76,7 +97,9 @@ class Game {
 
                     if (new_row >= 0 && new_col >= 0 
                     && new_row < SIZE && new_col < SIZE
-                    && board[new_row][new_col] == EMPTY){
+                    && board[new_row][new_col] == EMPTY
+                    && abs(row) + abs(col) == 1)
+                {
                         possible_moves.push_back({new_row, new_col});
                     }
                 }
@@ -97,19 +120,38 @@ class Game {
             return (cat_spot.row == 0 || cat_spot.row == SIZE - 1 || cat_spot.col == 0 || cat_spot.col == SIZE - 1);
         }
 
-        void run(){
-            while (!game_end){
-                print_board();
-                if (has_escaped()) {
-                    std::cout << "The cat has escaped! You lose.\n";
-                return;
+        void run() {
+            while (window.isOpen()){
+                while (const std::optional event = window.pollEvent()){
+                    if (event->is<sf::Event::Closed>()){
+                        window.close();
+                    }
+                    else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()){
+                        if (keyPressed->scancode == sf::Keyboard::Scancode::Escape){
+                            window.close();
+                    }
                 }
-
-                player_move();
-                cat_move();
-            }
-            if (game_end){
-                cout << "You caught the cat!";
             }
         }
+
+        player_move();
+        cat_move();
+
+        if (has_escaped()){
+            window.clear();
+
+            sf::Font font;
+
+            sf::Text text(font, "You Lose.", 24);
+            window.draw(text);
+            window.display();
+            sf::sleep(sf::seconds(5));
+            window.close();
+            return;
+        }
+
+        print_board();
+        window.display();
+    }
+
 };
