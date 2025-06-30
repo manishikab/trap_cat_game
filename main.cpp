@@ -30,7 +30,10 @@ int main() {
     sf::Clock endClock;
     bool endClockStarted = false;
 
+    sf::Clock frameClock;
+
     while (window.isOpen()) {
+        float delta_time = frameClock.restart().asSeconds();
         while (auto eventOpt = window.pollEvent()) {
             if (!eventOpt.has_value()) break;
             const sf::Event& event = *eventOpt;
@@ -66,6 +69,7 @@ int main() {
 if (state == GameState::MENU) {
     window.draw(menuText);
 } else if (state == GameState::PLAYING && game) {
+    game->update(delta_time);
     game->draw();
 
     sf::Text playingText(font);
