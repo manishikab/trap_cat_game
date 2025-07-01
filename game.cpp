@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <SFML/Graphics.hpp>
 
 Game::Game(sf::RenderWindow& win) : window(win) {
     board = std::vector<std::vector<Cell>>(SIZE, std::vector<Cell>(SIZE, EMPTY));
@@ -11,39 +12,30 @@ Game::Game(sf::RenderWindow& win) : window(win) {
     srand(static_cast<unsigned>(time(nullptr)));
 
     if (!cat_texture.loadFromFile("/Users/manishika/desktop/game_test/resources/idle.png")) {
-    std::cerr << "Failed to load cat image\n";
-} else {
-    cat_sprite.emplace(cat_texture);
+        std::cerr << "Failed to load cat image\n";
+    } else {
+        cat_sprite.emplace(cat_texture);
+        cat_sprite->setTextureRect(sf::IntRect(sf::Vector2i(0, 0), sf::Vector2i(frame_width, frame_height)));
+        cat_sprite->setScale(sf::Vector2f(static_cast<float>(CELL_SIZE) / frame_width, static_cast<float>(CELL_SIZE) / frame_height));
+    }
 
-    // Set initial texture rect (first frame at position (0,0), size (32,32))
-    cat_sprite->setTextureRect(sf::IntRect(
-        sf::Vector2i(0, 0), 
-        sf::Vector2i(frame_width, frame_height)
-    ));
+    if (!furniture_texture.loadFromFile("/Users/manishika/desktop/game_test/resources/furniture_edited.png")) {
+        std::cerr << "Failed to load furniture image\n";
+    }
 
-    cat_sprite->setScale(sf::Vector2f(
-        static_cast<float>(CELL_SIZE) / frame_width,
-        static_cast<float>(CELL_SIZE) / frame_height
-    ));
-}
-
-if (!furniture_texture.loadFromFile("/Users/manishika/desktop/game_test/resources/Furnitures.png")) {
-    std::cerr << "Failed to load furniture image\n";
-}
+    for (int i = 0; i < 12; ++i) {
+        furnitureRects.push_back(sf::IntRect(sf::Vector2i(i * 64, 0), sf::Vector2i(64, 64)));
+    }
 }
 
 void Game::update(float delta_time) {
     animation_timer += delta_time;
     if (animation_timer >= animation_speed) {
         animation_timer -= animation_speed;
-
         current_frame = (current_frame + 1) % frame_count;
 
         if (cat_sprite) {
-            cat_sprite->setTextureRect(sf::IntRect(
-                sf::Vector2i(current_frame * frame_width, 0),
-                sf::Vector2i(frame_width, frame_height)
-            ));
+            cat_sprite->setTextureRect(sf::IntRect(sf::Vector2i(current_frame * frame_width, 0), sf::Vector2i(frame_width, frame_height)));
         }
     }
 }
@@ -58,28 +50,17 @@ void Game::player_click(int x, int y) {
     if (board[row][col] == EMPTY) {
         board[row][col] = BLOCK;
 
-        // Pick a random furniture rectangle from predefined list
         sf::IntRect rect = furnitureRects[rand() % furnitureRects.size()];
-
-        // Create furniture sprite
-        sf::Sprite furniture(furniture_texture);
-        furniture.setTextureRect(rect);
 
         sf::Vector2i size = rect.size;
 
-        furniture.setScale(sf::Vector2f(
-            static_cast<float>(CELL_SIZE) / size.x,
-            static_cast<float>(CELL_SIZE) / size.y
-        )
-        );
-        furniture.setPosition(sf::Vector2f(
-            static_cast<float>(col * CELL_SIZE),
-            static_cast<float>(row * CELL_SIZE)
-        )
-        );
+        sf::Sprite furniture(furniture_texture);
+        furniture.setTextureRect(rect);
+        furniture.setScale(sf::Vector2f(static_cast<float>(CELL_SIZE) / size.x, static_cast<float>(CELL_SIZE) / size.y));
+        furniture.setPosition(sf::Vector2f(col * CELL_SIZE, row * CELL_SIZE));
 
-        // Store sprite for later drawing
-        furniture_sprites.insert({{row, col}, furniture});
+        // Store the sprite in the map to be drawn later
+        furniture_sprites.insert({ {row, col}, furniture });
     } else {
         std::cout << "That cell is already occupied. Try again\n";
     }
@@ -124,15 +105,10 @@ void Game::draw() {
             cell.setPosition(sf::Vector2f(j * CELL_SIZE, i * CELL_SIZE));
 
             if (board[i][j] == BLOCK) {
-                // Check if a furniture sprite exists for this cell
+                // Draw the furniture only if it's in the map
                 auto it = furniture_sprites.find({i, j});
                 if (it != furniture_sprites.end()) {
-                    // Draw furniture sprite instead of black square
-                    window.draw(it->second);
-                } else {
-                    // Fallback: draw black square
-                    cell.setFillColor(sf::Color::Black);
-                    window.draw(cell);
+                    window.draw(it->second);  
                 }
             } else if (board[i][j] == CAT) {
                 if (cat_sprite.has_value()) {
@@ -145,5 +121,4 @@ void Game::draw() {
             }
         }
     }
-
 }
