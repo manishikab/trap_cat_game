@@ -1,15 +1,19 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+
 #include <iostream>
 #include <memory>
 #include "game.hpp"
+#include "menu.hpp"
 
-enum class GameState { MENU, PLAYING, GAME_OVER };
+enum class GameState { MENU, PLAYING, GAME_OVER, ABOUT };
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(sf::Vector2u(SIZE * CELL_SIZE, SIZE * CELL_SIZE)), "Catch the Cat");
+    sf::VideoMode videoMode(sf::Vector2u(800, 600));
+    sf::RenderWindow window(videoMode, "Catch the Cat", sf::Style::Titlebar | sf::Style::Close);
 
     sf::Font font;
-    if (!font.openFromFile("arial.ttf")) {
+    if (!font.openFromFile("OpenSans-Bold.ttf")) {
         std::cerr << "Failed to load font\n";
         return 1;
     }
@@ -17,20 +21,13 @@ int main() {
     std::unique_ptr<Game> game;
     GameState state = GameState::MENU;
 
-    sf::Text menuText(font);
-    menuText.setString("Click to Start");
-    menuText.setCharacterSize(40);    
-    menuText.setFillColor(sf::Color::Blue);
-
     sf::Text endText(font);
     endText.setString("");
     endText.setCharacterSize(40);
     endText.setFillColor(sf::Color::Red);
 
-    sf::Clock endClock;
-    bool endClockStarted = false;
-
     sf::Clock frameClock;
+    Menu menu(window);  
 
     while (window.isOpen()) {
         float delta_time = frameClock.restart().asSeconds();
@@ -43,70 +40,85 @@ int main() {
             }
 
             if (state == GameState::MENU) {
-    if (event.is<sf::Event::MouseButtonPressed>()) {
-        std::cout << "Starting game, switching to PLAYING state\n";
-        game = std::make_unique<Game>(window);
-        state = GameState::PLAYING;
-        endClockStarted = false;
-        endText.setString("");
-    }
-
-
+                if (menu.handleEvent(event)) {
+                    if (menu.isPlaySelected()) {
+                        std::cout << "Starting game, switching to PLAYING state\n";
+                        game = std::make_unique<Game>(window);
+                        state = GameState::PLAYING;
+                        endText.setString("");
+                    } else if (menu.isAboutSelected()) {
+                        std::cout << "About selected\n";
+                        state = GameState::ABOUT;
+                    }
+                }
+            } else if (state == GameState::ABOUT) {
+                if (event.is<sf::Event::MouseButtonPressed>()) {
+                    // Click anywhere to return to menu
+                    state = GameState::MENU;
+                }
+            } else if (state == GameState::GAME_OVER) {
+                if (event.is<sf::Event::MouseButtonPressed>()) {
+                    game.reset();
+                    state = GameState::MENU;
+                    endText.setString("");
+                }
             } else if (state == GameState::PLAYING && game) {
                 if (const auto* mousePressed = event.getIf<sf::Event::MouseButtonPressed>()) {
                     if (mousePressed->button == sf::Mouse::Button::Left &&
-                        !game->isGameOver() && !game->catEscaped()) {
+                        !game->won() && !game->lost()) {
                         sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-                        game->player_click(mousePos.x, mousePos.y);
-                        game->cat_move();
+                        if (game->player_click(mousePos.x, mousePos.y)) {
+                            game->cat_move();  // ✅ only if valid block placed
+                        }
                     }
                 }
             }
         }
 
-       window.clear(sf::Color::White);
+        if (state == GameState::PLAYING) {
+            window.clear(sf::Color::White);  
+        } else {
+            window.clear(sf::Color(255, 182, 193));   
+        }
 
-if (state == GameState::MENU) {
-    window.draw(menuText);
-} else if (state == GameState::PLAYING && game) {
-    game->update(delta_time);
-    game->draw();
+        if (state == GameState::MENU) {
+            menu.draw();  
+        } else if (state == GameState::PLAYING && game) {
+            game->update(delta_time);
+            game->draw();
 
-    sf::Text playingText(font);
-    playingText.setString("Game Running...");
-    playingText.setCharacterSize(30);
-    playingText.setFillColor(sf::Color::Green);
-    playingText.setPosition(sf::Vector2f(10, 10));
-    window.draw(playingText);
+            if (game->won()) {
+                endText.setString("You Win!\nClick anywhere to return to menu.");
+                state = GameState::GAME_OVER;
+            } else if (game->lost()) {
+                endText.setString("You Lose.\nClick anywhere to return to menu.");
+                state = GameState::GAME_OVER;
+            }
+        } else if (state == GameState::GAME_OVER) {
+            auto bounds = endText.getLocalBounds();
+            auto size = bounds.size;
+            endText.setPosition(sf::Vector2f(
+                (window.getSize().x - size.x) / 2.f,
+                (window.getSize().y - size.y) / 2.f
+            ));
+            window.draw(endText);
+        } else if (state == GameState::ABOUT) {
+            sf::Text aboutText(font);
+            aboutText.setString("Catch the Cat!\n\nA puzzle game where you try to trap the cat.\n\nClick anywhere to return.");
+            aboutText.setCharacterSize(24);
+            aboutText.setFillColor(sf::Color::Black);
 
-    if (game->isGameOver()) {
-        endText.setString("You Win!");
-        state = GameState::GAME_OVER;
-        endClock.restart();
-        endClockStarted = true;
-    } else if (game->catEscaped()) {
-        endText.setString("You Lose.");
-        state = GameState::GAME_OVER;
-        endClock.restart();
-        endClockStarted = true;
-    }
-} else if (state == GameState::GAME_OVER) {
-    window.draw(endText);
+            auto bounds = aboutText.getLocalBounds();
+            auto size = bounds.size;
+            aboutText.setPosition(sf::Vector2f(
+                (window.getSize().x - size.x) / 2.f,
+                (window.getSize().y - size.y) / 2.f)
+            );
 
-    if (!endClockStarted) {
-        endClock.restart();
-        endClockStarted = true;
-    }
+            window.draw(aboutText);
+        }
 
-    if (endClock.getElapsedTime().asSeconds() > 5.0) {
-        game.reset();
-        state = GameState::MENU;
-        endClockStarted = false;
-        endText.setString("");
-    }
-}
-
-window.display();
+        window.display();
     }
 
     return 0;

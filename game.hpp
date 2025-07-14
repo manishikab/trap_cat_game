@@ -30,7 +30,8 @@ class Game {
 private:
     std::vector<std::vector<Cell>> board;
     Position cat_spot;
-    bool game_end = false;
+
+   
 
     sf::RenderWindow& window;
     sf::Texture cat_texture;
@@ -50,18 +51,27 @@ private:
     //fixme?
     std::map<Position, sf::Sprite> furniture_sprites;
 
+    
+
 
 public:
     Game(sf::RenderWindow& win);
 
     void update(float delta_time);
-    void player_click(int x, int y);
+    bool player_click(int x, int y);
     void cat_move();
 
-    bool isGameOver() const { return game_end; }
+    bool won() { return game_won; }
+    bool lost() {return game_lost;}
     bool catEscaped() const;
 
     void draw();
+
+     bool game_lost = false;
+    bool game_won = false;
+    bool loss_pending = false;
+    float loss_delay_timer = 0.0f;
+
 };
 
 #endif

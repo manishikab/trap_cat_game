@@ -9,9 +9,9 @@ class Menu {
 private:
     sf::RenderWindow& window;
     sf::Font font;
-    std::optional<sf::Text> playText;
-    std::optional<sf::Text> aboutText;
-
+    sf::Text playText;
+    sf::Text aboutText;
+    sf::Text title;
 
     bool playSelected = false;
     bool aboutSelected = false;
@@ -19,12 +19,12 @@ private:
 public:
     Menu(sf::RenderWindow& windowOpen);
     void draw();
-    //fix me
     void setupText(sf::Text& text, const string& str, float y);
     bool handleEvent(const sf::Event& event);
     
-    bool isPlaySelected() const;
-    bool isAboutSelected() const;
+    bool isPlaySelected();
+    bool isAboutSelected();
+
 };
 
 #endif
