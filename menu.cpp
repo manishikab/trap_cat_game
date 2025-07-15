@@ -2,7 +2,8 @@
 #include <iostream>
 
 Menu::Menu(sf::RenderWindow& windowOpen)
-: window(windowOpen), playText(font), aboutText(font), title(font) {  // Initialize text members explicitly
+: window(windowOpen), playText(font), aboutText(font), title(font)
+{
     if (!font.openFromFile("OpenSans-Bold.ttf")) {
         std::cerr << "Failed to load font.\n";
     }
@@ -19,9 +20,9 @@ Menu::Menu(sf::RenderWindow& windowOpen)
     title.setCharacterSize(64);
     title.setFillColor(sf::Color(139, 69, 90));
 
-    setupText(playText, "Play", 200.f);
-    setupText(aboutText, "About", 300.f);
-    setupText(title, "Catch the Cat!", 50.f);
+    setupText(playText, "Play", 400.f);
+    setupText(aboutText, "About", 500.f);
+    setupText(title, "Catch the Cat!", 250.f);
 }
 
 void Menu::setupText(sf::Text& text, const std::string& str, float y) {
@@ -32,23 +33,34 @@ void Menu::setupText(sf::Text& text, const std::string& str, float y) {
 
 void Menu::draw() {
     window.draw(title);
-    window.draw(playText);  
+    window.draw(playText);
     window.draw(aboutText);
 }
 
 bool Menu::handleEvent(const sf::Event& event) {
-
     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
     sf::Vector2f mouseWorldPos(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 
-    playText.setFillColor(playText.getGlobalBounds().contains(mouseWorldPos) ? sf::Color(139, 69, 90) : sf::Color::Black);
-    aboutText.setFillColor(aboutText.getGlobalBounds().contains(mouseWorldPos) ? sf::Color(139, 69, 90) : sf::Color::Black);
-    
+// change color on hover
+    if (playText.getGlobalBounds().contains(mouseWorldPos)) {
+        playText.setFillColor(sf::Color(139, 69, 90));
+    } 
+    else {
+        playText.setFillColor(sf::Color::Black);
+    }
+
+    if (aboutText.getGlobalBounds().contains(mouseWorldPos)){
+        aboutText.setFillColor(sf::Color(139, 69, 90));
+    }
+    else {
+        aboutText.setFillColor(sf::Color::Black);
+    }
+
+// click to change screen
     if (const auto* mousePressed = event.getIf<sf::Event::MouseButtonPressed>()) {
         sf::Vector2i mousePos = sf::Mouse::getPosition(window);
         sf::Vector2f mouseWorldPos(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 
-        // Check if playText or aboutText was clicked
         if (playText.getGlobalBounds().contains(mouseWorldPos)) {
             playSelected = true;
             return true;

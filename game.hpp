@@ -6,8 +6,8 @@
 #include <SFML/Graphics.hpp>
 #include <map>
 
-constexpr int SIZE = 5;
-constexpr int CELL_SIZE = 100;
+const int SIZE = 10;
+const int CELL_SIZE = 64;
 
 enum Cell {
     CAT,
@@ -20,8 +20,18 @@ public:
     int row;
     int col;
 
+    bool operator==(const Position& rhs) const {
+        return row == rhs.row && col == rhs.col;
+    }
+
+    bool operator!=(const Position& rhs) const {
+        return !(*this == rhs);
+    }
+
     bool operator<(const Position& rhs) const {
-        if (row == rhs.row) return col < rhs.col;
+        if (row == rhs.row){
+            return col < rhs.col;
+        }
         return row < rhs.row;
     }
 };
@@ -48,12 +58,11 @@ private:
     sf::Texture furniture_texture;
     std::vector<sf::IntRect> furnitureRects;
 
-    //fixme?
     std::map<Position, sf::Sprite> furniture_sprites;
 
+    float x_offset = 0.0f;
+    float y_offset = 0.0f;
     
-
-
 public:
     Game(sf::RenderWindow& win);
 
@@ -61,17 +70,18 @@ public:
     bool player_click(int x, int y);
     void cat_move();
 
-    bool won() { return game_won; }
+    bool won(){return game_won;}
     bool lost() {return game_lost;}
+
+    bool catEscapedFrom(const Position& pos) const;
     bool catEscaped() const;
 
     void draw();
 
-     bool game_lost = false;
+    bool game_lost = false;
     bool game_won = false;
     bool loss_pending = false;
     float loss_delay_timer = 0.0f;
-
 };
 
 #endif

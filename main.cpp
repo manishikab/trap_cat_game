@@ -2,14 +2,14 @@
 #include <SFML/Window.hpp>
 
 #include <iostream>
-#include <memory>
 #include "game.hpp"
 #include "menu.hpp"
 
 enum class GameState { MENU, PLAYING, GAME_OVER, ABOUT };
 
 int main() {
-    sf::VideoMode videoMode(sf::Vector2u(800, 600));
+    // fixed screen size
+    sf::VideoMode videoMode(sf::Vector2u(800, 800));
     sf::RenderWindow window(videoMode, "Catch the Cat", sf::Style::Titlebar | sf::Style::Close);
 
     sf::Font font;
@@ -18,20 +18,24 @@ int main() {
         return 1;
     }
 
-    std::unique_ptr<Game> game;
+    Game* game = nullptr;
     GameState state = GameState::MENU;
 
     sf::Text endText(font);
     endText.setString("");
     endText.setCharacterSize(40);
-    endText.setFillColor(sf::Color::Red);
+    endText.setFillColor(sf::Color(139, 69, 90));
 
     sf::Clock frameClock;
-    Menu menu(window);  
+    Menu menu(window);
 
     while (window.isOpen()) {
         float delta_time = frameClock.restart().asSeconds();
+
+        // if user clicks
         while (auto eventOpt = window.pollEvent()) {
+            
+            //no click
             if (!eventOpt.has_value()) break;
             const sf::Event& event = *eventOpt;
 
@@ -42,33 +46,35 @@ int main() {
             if (state == GameState::MENU) {
                 if (menu.handleEvent(event)) {
                     if (menu.isPlaySelected()) {
-                        std::cout << "Starting game, switching to PLAYING state\n";
-                        game = std::make_unique<Game>(window);
+                        // new game
+                        game = new Game(window); 
                         state = GameState::PLAYING;
-                        endText.setString("");
                     } else if (menu.isAboutSelected()) {
-                        std::cout << "About selected\n";
                         state = GameState::ABOUT;
                     }
                 }
             } else if (state == GameState::ABOUT) {
+                // Click anywhere to return to menu
                 if (event.is<sf::Event::MouseButtonPressed>()) {
-                    // Click anywhere to return to menu
                     state = GameState::MENU;
                 }
+
             } else if (state == GameState::GAME_OVER) {
+                // Click anywhere to return to menu
                 if (event.is<sf::Event::MouseButtonPressed>()) {
-                    game.reset();
+                    delete game;  // free memory
+                    game = nullptr; 
                     state = GameState::MENU;
-                    endText.setString("");
                 }
+
             } else if (state == GameState::PLAYING && game) {
+                // move
                 if (const auto* mousePressed = event.getIf<sf::Event::MouseButtonPressed>()) {
                     if (mousePressed->button == sf::Mouse::Button::Left &&
                         !game->won() && !game->lost()) {
                         sf::Vector2i mousePos = sf::Mouse::getPosition(window);
                         if (game->player_click(mousePos.x, mousePos.y)) {
-                            game->cat_move();  // ✅ only if valid block placed
+                            game->cat_move(); 
                         }
                     }
                 }
@@ -94,7 +100,9 @@ int main() {
                 endText.setString("You Lose.\nClick anywhere to return to menu.");
                 state = GameState::GAME_OVER;
             }
-        } else if (state == GameState::GAME_OVER) {
+        } 
+        
+        else if (state == GameState::GAME_OVER) {
             auto bounds = endText.getLocalBounds();
             auto size = bounds.size;
             endText.setPosition(sf::Vector2f(
@@ -104,7 +112,7 @@ int main() {
             window.draw(endText);
         } else if (state == GameState::ABOUT) {
             sf::Text aboutText(font);
-            aboutText.setString("Catch the Cat!\n\nA puzzle game where you try to trap the cat.\n\nClick anywhere to return.");
+            aboutText.setString("Catch the Cat!\n\nA puzzle game where you try to trap the cat.\nDon't let him get to the edge! \n\nClick anywhere to return.");
             aboutText.setCharacterSize(24);
             aboutText.setFillColor(sf::Color::Black);
 
@@ -120,6 +128,7 @@ int main() {
 
         window.display();
     }
+    delete game;
 
     return 0;
 }

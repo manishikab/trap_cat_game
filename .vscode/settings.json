@@ -55,6 +55,7 @@
         "charconv": "cpp",
         "forward_list": "cpp",
         "iomanip": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "set": "cpp"
     }
 }
